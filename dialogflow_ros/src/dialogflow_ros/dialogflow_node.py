@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 import rospy
+import actionlib
 import apiai
 
-from std_msgs.msg import String
+from dialogflow_msgs.msg import TextRequestAction
 
 # Authentication
 SESSION_ID = ''
@@ -17,6 +18,10 @@ class DialogflowNode(object):
     """
     def __init__(self):
         rospy.init_node('dialogflow_node')
+
+        self._server = actionlib.SimpleActionServer('text', TextRequestAction, self._text_callback, False)
+        self._server.start()
+
         rospy.Subscriber("speech", String, self.speech_callback, queue_size=10)
         try:
             self._client_access_token = rospy.get_param("~client_access_token")
@@ -27,9 +32,10 @@ class DialogflowNode(object):
         self.ai = apiai.ApiAI(self._client_access_token)
 
         self.result_pub = rospy.Publisher("command", String, queue_size=10)
+
         self.request = None
 
-    def speech_callback(self, msg):
+    def _text_callback(self, goal):
         self.request = self.ai.text_request()
         self.request.query = msg.data
 
